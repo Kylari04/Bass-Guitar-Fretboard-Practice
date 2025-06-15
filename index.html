@@ -17,7 +17,7 @@
     .clef { font-family: 'Times New Roman', serif; font-size: 60px; fill: #333; text-anchor: middle; dominant-baseline: central; }
     .note-head { fill: #333; stroke: #333; stroke-width: 1; }
     .note-stem { stroke: #333; stroke-width: 2; }
-    #fretboard { display: flex; flex-direction: column; gap: 4px; margin: 20px auto; border: 2px solid #8b4513; border-radius: 8px; background: #deb887; padding: 10px; max-width: 700px; }
+    #fretboard { display: flex; flex-direction: column; gap: 4px; margin: 20px auto 30px auto; border: 2px solid #8b4513; border-radius: 8px; background: #deb887; padding: 10px; max-width: 700px; }
     .string { display: flex; background: #cd853f; border-radius: 4px; padding: 2px; }
     .fret { width: 50px; height: 50px; border: 2px solid #8b4513; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; font-weight: bold; background: #f4a460; border-radius: 4px; transition: all 0.2s; position: relative; }
     .fret:hover { background: #daa520; transform: scale(1.05); }
@@ -53,6 +53,7 @@
   <div class="container">
     <h1>🎸 Bass Guitar Note Trainer</h1>
     <div id="staff"><div class="note-display"><div class="note-name">Click "New Note" to start!</div><div class="note-info">Find all positions of the target note</div></div></div>
+    <div id="fretboard"></div>
     <div id="controls">
       <div class="control-group"><label for="fretRange">Max fret:</label><input type="number" id="fretRange" value="5" min="1" max="24"><button id="newNote">New Note</button></div>
       <div class="control-group"><label for="showNumbers">Show fret numbers:</label><input type="checkbox" id="showNumbers" checked></div>
@@ -68,7 +69,6 @@
       <div class="stat-item"><span>Total Time: </span><span id="totalTime">0:00</span></div>
       <div class="stat-item"><span>Guess Time: </span><span id="guessTime">0</span>s</div>
     </div>
-    <div id="fretboard"></div>
   </div>
 
   <script>
