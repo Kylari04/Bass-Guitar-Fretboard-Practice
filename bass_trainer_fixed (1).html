@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bass Note Trainer</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; padding: 20px; text-align: center; background: #f5f5f5; margin: 0; }
+    .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    #staff { margin: 20px auto; min-height: 200px; border: 2px solid #333; border-radius: 8px; background: linear-gradient(to bottom, #fff, #f8f8f8); display: flex; align-items: center; justify-content: center; }
+    .note-display { text-align: center; padding: 20px; }
+    .note-name { font-size: 48px; color: #2c3e50; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
+    .note-info { font-size: 16px; color: #7f8c8d; }
+    .staff-svg { width: 350px; height: 200px; }
+    .staff-line, .ledger-line { stroke: #333; stroke-width: 2; }
+    .clef { font-family: 'Times New Roman', serif; font-size: 60px; fill: #333; text-anchor: middle; dominant-baseline: central; }
+    .note-head { fill: #333; stroke: #333; stroke-width: 1; }
+    .note-stem { stroke: #333; stroke-width: 2; }
+    #fretboard { display: flex; flex-direction: column; gap: 4px; margin: 20px auto; border: 2px solid #8b4513; border-radius: 8px; background: #deb887; padding: 10px; max-width: 700px; }
+    .string { display: flex; background: #cd853f; border-radius: 4px; padding: 2px; }
+    .fret { width: 50px; height: 50px; border: 2px solid #8b4513; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; font-weight: bold; background: #f4a460; border-radius: 4px; transition: all 0.2s; position: relative; }
+    .fret:hover { background: #daa520; transform: scale(1.05); }
+    .fret.hide-numbers { color: transparent; }
+    .string-label { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold; background: #654321; color: white; border-radius: 4px; font-size: 18px; }
+    .nut { width: 4px; height: 50px; background: #2c1810; border-radius: 2px; margin: 0 2px; }
+    .fret-dot { position: absolute; width: 8px; height: 8px; background: #8b4513; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+    .fret-double-dot { position: absolute; pointer-events: none; }
+    .fret-double-dot::before, .fret-double-dot::after { content: ''; position: absolute; width: 6px; height: 6px; background: #8b4513; border-radius: 50%; }
+    .fret-double-dot::before { top: -15px; left: 50%; transform: translateX(-50%); }
+    .fret-double-dot::after { top: 15px; left: 50%; transform: translateX(-50%); }
+    #controls { margin: 20px 0; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; align-items: center; }
+    .control-group { display: flex; align-items: center; gap: 8px; background: #ecf0f1; padding: 10px 15px; border-radius: 6px; border: 1px solid #bdc3c7; }
+    button { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; transition: background 0.2s; }
+    button:hover { background: #2980b9; }
+    button:active { transform: translateY(1px); }
+    input[type="number"] { width: 60px; padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; text-align: center; }
+    input[type="checkbox"] { width: 18px; height: 18px; }
+    .correct-note { background: #2ecc71 !important; color: white; animation: pulse 0.5s; }
+    .incorrect-note { background: #e74c3c !important; color: white; animation: shake 0.5s; }
+    .found-note { background: #3498db !important; color: white; border-color: #2980b9; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    #feedback { margin: 20px 0; font-size: 18px; font-weight: bold; min-height: 30px; padding: 15px; border-radius: 6px; background: #ecf0f1; }
+    .success { color: #27ae60; background: #d5f4e6; border: 1px solid #27ae60; }
+    .error { color: #e74c3c; background: #fadbd8; border: 1px solid #e74c3c; }
+    .info { color: #2980b9; background: #d6eaf8; border: 1px solid #2980b9; }
+    .stats { margin: 20px 0; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+    .stat-item { background: #34495e; color: white; padding: 10px 20px; border-radius: 6px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎸 Bass Guitar Note Trainer</h1>
+    <div id="staff"><div class="note-display"><div class="note-name">Click "New Note" to start!</div><div class="note-info">Find all positions of the target note</div></div></div>
+    <div id="controls">
+      <div class="control-group"><label for="fretRange">Max fret:</label><input type="number" id="fretRange" value="5" min="1" max="24"><button id="newNote">New Note</button></div>
+      <div class="control-group"><label for="showNumbers">Show fret numbers:</label><input type="checkbox" id="showNumbers" checked></div>
+      <div class="control-group"><label for="autoPlay">Auto-play notes:</label><input type="checkbox" id="autoPlay" checked></div>
+      <div class="control-group"><label for="includeAccidentals">Include sharps/flats:</label><input type="checkbox" id="includeAccidentals"></div>
+      <div class="control-group"><label for="guessTimeLimit">Guess time limit (sec):</label><input type="number" id="guessTimeLimit" value="30" min="5" max="300"></div>
+      <div class="control-group"><button id="playNote">🔊 Play Note</button><button id="showAnswer">💡 Show Answer</button></div>
+    </div>
+    <div id="feedback"></div>
+    <div class="stats">
+      <div class="stat-item"><span>Found: </span><span id="foundCount">0</span>/<span id="totalCount">0</span></div>
+      <div class="stat-item"><span>Current Note: </span><span id="currentNote">-</span></div>
+      <div class="stat-item"><span>Total Time: </span><span id="totalTime">0:00</span></div>
+      <div class="stat-item"><span>Guess Time: </span><span id="guessTime">0</span>s</div>
+    </div>
+    <div id="fretboard"></div>
+  </div>
+
+  <script>
+    const strings = ["G2", "D2", "A1", "E1"], stringNames = ["G", "D", "A", "E"];
+    const noteMap = new Map();
+    let targetNote = null, targetPositions = [], foundPositions = [], audioContext = null;
+    let showNumbers = true, autoPlay = true, includeAccidentals = false;
+    let startTime = 0, totalElapsed = 0, guessTimer = 0, guessTimeLimit = 30, guessInterval = null, totalInterval = null;
+
+    const bassClefPositions = {
+      // Bass clef staff lines from top to bottom: A2(45), F2(41), D2(38), B1(35), G1(31)
+      // Staff lines are at y=50, 70, 90, 110, 130
+      50: {y: 20, ledger: [20, 30]}, // D3 (50)
+      49: {y: 30, ledger: [30]}, // C#3/Db3 (49) - same as C3
+      48: {y: 30, ledger: [30]}, // C3 (48)
+      47: {y: 35}, // B2 (47)
+      46: {y: 35}, // A#2/Bb2 (46) - same as B2
+      45: {y: 50}, // A2 (45) - top staff line
+      44: {y: 60}, // G#2/Ab2 (44) - same as G2
+      43: {y: 60}, // G2 (43)
+      42: {y: 70}, // F#2/Gb2 (42) - same as F2
+      41: {y: 70}, // F2 (41) - second staff line
+      40: {y: 75}, // E2 (40)
+      39: {y: 90}, // D#2/Eb2 (39) - same as D2
+      38: {y: 90}, // D2 (38) - middle staff line
+      37: {y: 100}, // C#2/Db2 (37) - same as C2
+      36: {y: 100}, // C2 (36)
+      35: {y: 110}, // B1 (35) - fourth staff line
+      34: {y: 110}, // A#1/Bb1 (34) - same as B1
+      33: {y: 120}, // A1 (33) - open A string
+      32: {y: 130}, // G#1/Ab1 (32) - same as G1
+      31: {y: 130}, // G1 (31) - bottom staff line
+      30: {y: 135}, // F#1/Gb1 (30) - same as F1
+      29: {y: 135}, // F1 (29)
+      28: {y: 150, ledger: [150]}, // E1 (28) - open E string, ON the ledger line
+      27: {y: 150, ledger: [150]}, // D#1/Eb1 (27) - same as E1
+      26: {y: 155, ledger: [150, 160]}, // D1 (26)
+      25: {y: 160, ledger: [150, 160]}, // C#1/Db1 (25) - same as C1
+      24: {y: 160, ledger: [150, 160]} // C1 (24)
+    };
+      
+    function initAudio() { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); return true; } catch (e) { return false; } }
+
+    function playTone(freq, dur = 0.5) {
+      if (!audioContext) return;
+      try {
+        const osc = audioContext.createOscillator(), gain = audioContext.createGain();
+        osc.connect(gain); gain.connect(audioContext.destination);
+        osc.frequency.setValueAtTime(freq, audioContext.currentTime); osc.type = 'sine';
+        gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + dur);
+        osc.start(); osc.stop(audioContext.currentTime + dur);
+      } catch (e) { console.log('Audio error:', e); }
+    }
+
+    const midiToFreq = midi => 440 * Math.pow(2, (midi - 69) / 12);
+    const getMidiFromNote = note => ({E1: 28, A1: 33, D2: 38, G2: 43})[note] || 40;
+    const midiToNoteName = midi => {
+      const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+      const name = names[midi % 12];
+      const octave = Math.floor(midi / 12) - 1;
+      return {name, octave, fullName: name + octave, midi};
+    };
+
+    function createStaffSVG(midiNote) {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", "staff-svg"); svg.setAttribute("viewBox", "0 0 350 250");
+      
+      for (let i = 0; i < 5; i++) {
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("class", "staff-line");
+        line.setAttribute("x1", "60"); line.setAttribute("x2", "320");
+        line.setAttribute("y1", 50 + i * 20); line.setAttribute("y2", 50 + i * 20);
+        svg.appendChild(line);
+      }
+
+      const clef = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      clef.setAttribute("class", "clef"); clef.setAttribute("x", "30"); clef.setAttribute("y", "100");
+      clef.textContent = "𝄢"; svg.appendChild(clef);
+
+      if (midiNote && bassClefPositions[midiNote]) {
+        const pos = bassClefPositions[midiNote];
+        (pos.ledger || []).forEach(y => {
+          const ledger = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          ledger.setAttribute("class", "ledger-line");
+          ledger.setAttribute("x1", "170"); ledger.setAttribute("x2", "230");
+          ledger.setAttribute("y1", y); ledger.setAttribute("y2", y);
+          svg.appendChild(ledger);
+        });
+
+        const head = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+        head.setAttribute("class", "note-head"); head.setAttribute("cx", "200"); head.setAttribute("cy", pos.y);
+        head.setAttribute("rx", "8"); head.setAttribute("ry", "6"); svg.appendChild(head);
+
+        const stem = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        stem.setAttribute("class", "note-stem");
+        const up = pos.y > 90, x = up ? 208 : 192, endY = up ? pos.y - 30 : pos.y + 30;
+        stem.setAttribute("x1", x); stem.setAttribute("x2", x);
+        stem.setAttribute("y1", pos.y); stem.setAttribute("y2", endY);
+        svg.appendChild(stem);
+
+        // Add accidentals if needed
+        const noteInfo = midiToNoteName(midiNote);
+        if (noteInfo.name.includes('#')) {
+          const sharp = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          sharp.setAttribute("x", "175"); sharp.setAttribute("y", pos.y + 5);
+          sharp.setAttribute("font-family", "serif"); sharp.setAttribute("font-size", "20");
+          sharp.setAttribute("fill", "#333"); sharp.setAttribute("text-anchor", "middle");
+          sharp.textContent = "♯"; svg.appendChild(sharp);
+        }
+      }
+      return svg;
+    }
+
+    function buildFretboard(maxFret = 5) {
+      const container = document.getElementById("fretboard");
+      container.innerHTML = ""; noteMap.clear();
+
+      for (let s = 0; s < strings.length; s++) {
+        const stringDiv = document.createElement("div"); stringDiv.classList.add("string");
+        const label = document.createElement("div"); label.classList.add("string-label");
+        label.innerText = stringNames[s]; stringDiv.appendChild(label);
+        
+        const openMidi = getMidiFromNote(strings[s]);
+        for (let f = 0; f <= maxFret; f++) {
+          const noteMidi = openMidi + f, noteInfo = midiToNoteName(noteMidi), fret = document.createElement("div");
+          fret.classList.add("fret"); if (!showNumbers) fret.classList.add("hide-numbers");
+          fret.dataset.note = noteInfo.fullName; fret.innerText = f; fret.title = `${noteInfo.name} (${noteInfo.fullName})`;
+          fret.onclick = () => handleFretClick(s, f, noteInfo, fret);
+          
+          // Add fret dots
+          if (f === 3 || f === 5 || f === 7 || f === 9 || f === 15 || f === 17 || f === 19 || f === 21) {
+            const dot = document.createElement("div");
+            dot.classList.add("fret-dot");
+            fret.appendChild(dot);
+          } else if (f === 12 || f === 24) {
+            const doubleDot = document.createElement("div");
+            doubleDot.classList.add("fret-double-dot");
+            fret.appendChild(doubleDot);
+          }
+          
+          // Add nut separator after open string (fret 0)
+          if (f === 0) {
+            stringDiv.appendChild(fret);
+            const nut = document.createElement("div"); nut.classList.add("nut");
+            stringDiv.appendChild(nut);
+          } else {
+            stringDiv.appendChild(fret);
+          }
+          
+          if (!noteMap.has(noteInfo.fullName)) noteMap.set(noteInfo.fullName, []);
+          noteMap.get(noteInfo.fullName).push({string: s, fret: f, midi: noteMidi, fullName: noteInfo.fullName, noteInfo, element: fret});
+        }
+        container.appendChild(stringDiv);
+      }
+    }
+
+    function handleFretClick(s, f, noteInfo, el) {
+      if (!targetNote) return;
+      const key = `${s}-${f}`;
+      
+      if (noteInfo.fullName === targetNote) {
+        if (!foundPositions.includes(key)) {
+          foundPositions.push(key); el.classList.add("found-note");
+          if (audioContext) playTone(midiToFreq(noteInfo.midi), 0.8);
+          updateStats();
+          
+          if (foundPositions.length === targetPositions.length) {
+            if (guessInterval) clearInterval(guessInterval);
+            showFeedback("🎉 Excellent! You found all positions!", "success");
+            setTimeout(generateNote, 2000);
+          } else {
+            showFeedback(`Great! Found ${foundPositions.length} of ${targetPositions.length} positions. Keep looking!`, "info");
+          }
+        }
+      } else {
+        el.classList.add("incorrect-note");
+        showFeedback(`Incorrect. You clicked ${noteInfo.fullName}, but the target is ${targetNote}`, "error");
+        setTimeout(() => el.classList.remove("incorrect-note"), 1000);
+      }
+    }
+
+    const showFeedback = (msg, type) => { const f = document.getElementById("feedback"); f.textContent = msg; f.className = type; };
+    const updateStats = () => {
+      document.getElementById("foundCount").textContent = foundPositions.length;
+      document.getElementById("totalCount").textContent = targetPositions.length;
+      document.getElementById("currentNote").textContent = targetNote || "-";
+      
+      // Update total time
+      const minutes = Math.floor(totalElapsed / 60);
+      const seconds = totalElapsed % 60;
+      document.getElementById("totalTime").textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      
+      // Update guess time
+      document.getElementById("guessTime").textContent = guessTimer;
+    };
+
+    function generateNote() {
+      document.querySelectorAll('.fret').forEach(f => f.classList.remove('found-note', 'incorrect-note', 'correct-note'));
+      foundPositions = [];
+      
+      // Start timers if this is the first note
+      if (!totalInterval) {
+        startTime = Date.now();
+        totalInterval = setInterval(() => {
+          totalElapsed = Math.floor((Date.now() - startTime) / 1000);
+          updateStats();
+        }, 1000);
+      }
+      
+      // Reset guess timer
+      if (guessInterval) clearInterval(guessInterval);
+      guessTimer = 0;
+      guessInterval = setInterval(() => {
+        guessTimer++;
+        updateStats();
+        
+        if (guessTimer >= guessTimeLimit) {
+          showFeedback(`⏰ Time's up! The answer was ${targetNote}`, "error");
+          showAnswer();
+          setTimeout(generateNote, 2000);
+        }
+      }, 1000);
+      
+      const noteNames = Array.from(noteMap.keys()).filter(note => {
+        const hasAccidental = note.includes('#');
+        const hasPosition = bassClefPositions[noteMap.get(note)[0].midi];
+        return hasPosition && (includeAccidentals || !hasAccidental);
+      });
+      
+      if (noteNames.length === 0) return;
+      
+      targetNote = noteNames[Math.floor(Math.random() * noteNames.length)];
+      targetPositions = noteMap.get(targetNote);
+      const targetMidi = targetPositions[0].midi;
+      
+      document.getElementById("staff").innerHTML = "";
+      document.getElementById("staff").appendChild(createStaffSVG(targetMidi));
+      
+      if (autoPlay && audioContext) {
+        const play = () => setTimeout(() => playTone(midiToFreq(targetMidi), 1.0), 200);
+        audioContext.state === 'suspended' ? audioContext.resume().then(play) : play();
+      }
+      
+      updateStats();
+      showFeedback(`Find all ${targetPositions.length} positions of ${targetNote} on the fretboard`, "info");
+    }
+
+    function showAnswer() {
+      if (!targetNote) return;
+      if (guessInterval) clearInterval(guessInterval);
+      targetPositions.forEach(pos => pos.element.classList.add("correct-note"));
+      showFeedback(`All positions of ${targetNote} are highlighted in green!`, "success");
+      setTimeout(generateNote, 3000);
+    }
+
+    function startMetronome() {
+      if (!audioContext && !initAudio()) return showFeedback("Audio not available", "error");
+      if (metroInterval) return;
+      metroInterval = setInterval(() => playTone(800, 0.1), 60000 / currentTempo);
+      showFeedback(`Metronome started at ${currentTempo} BPM`, "info");
+    }
+
+    function stopMetronome() {
+      if (metroInterval) { clearInterval(metroInterval); metroInterval = null; showFeedback("Metronome stopped", "info"); }
+    }
+
+    // Event listeners
+    document.getElementById("fretRange").onchange = e => { buildFretboard(+e.target.value); if (targetNote) generateNote(); };
+    document.getElementById("showNumbers").onchange = e => { showNumbers = e.target.checked; document.querySelectorAll('.fret').forEach(f => f.classList.toggle('hide-numbers', !showNumbers)); };
+    document.getElementById("autoPlay").onchange = e => autoPlay = e.target.checked;
+    document.getElementById("includeAccidentals").onchange = e => { includeAccidentals = e.target.checked; if (targetNote) generateNote(); };
+    document.getElementById("guessTimeLimit").onchange = e => { guessTimeLimit = +e.target.value; };
+    document.getElementById("newNote").onclick = generateNote;
+    document.getElementById("playNote").onclick = () => {
+      if (targetNote && targetPositions.length > 0) {
+        const play = () => playTone(midiToFreq(targetPositions[0].midi), 1.0);
+        audioContext.state === 'suspended' ? audioContext.resume().then(play) : play();
+      }
+    };
+    document.getElementById("showAnswer").onclick = showAnswer;
+
+    // Initialize
+    initAudio(); buildFretboard(5); setTimeout(generateNote, 500);
+  </script>
+</body>
+</html>
